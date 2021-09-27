@@ -1,0 +1,143 @@
+version: "3"
+services:
+  zookeeper-1:
+    build:
+      context: ../
+      dockerfile: Dockerfile.zookeeper
+    hostname: zookeeper-1
+    environment:
+      ZOOKEEPER_SERVER_ID: "1"
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_SERVERS: zookeeper-1:2888:3888;zookeeper-2:2888:3888;zookeeper-3:2888:3888
+      KAFKA_OPTS: -Dzookeeper.4lw.commands.whitelist=*
+
+  zookeeper-2:
+    build:
+      context: ../
+      dockerfile: Dockerfile.zookeeper
+    hostname: zookeeper-2
+    environment:
+      ZOOKEEPER_SERVER_ID: "2"
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_SERVERS: zookeeper-1:2888:3888;zookeeper-2:2888:3888;zookeeper-3:2888:3888
+      KAFKA_OPTS: -Dzookeeper.4lw.commands.whitelist=*
+
+  zookeeper-3:
+    build:
+      context: ../
+      dockerfile: Dockerfile.zookeeper
+    hostname: zookeeper-3
+    environment:
+      ZOOKEEPER_SERVER_ID: "3"
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_SERVERS: zookeeper-1:2888:3888;zookeeper-2:2888:3888;zookeeper-3:2888:3888
+      KAFKA_OPTS: -Dzookeeper.4lw.commands.whitelist=*
+
+  kafka-1:
+    build:
+      context: ../
+      dockerfile: Dockerfile.kafka
+    hostname: kafka-1
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+      - zookeeper-3
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-1:9092"
+      KAFKA_BROKER_ID: "1"
+      KAFKA_BROKER_RACK: wr
+      KAFKA_MIN_INSYNC_REPLICAS: 3
+      KAFKA_CONFLUENT_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count":2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_CONFLUENT_TRANSACTION_STATE_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count":2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+
+  kafka-2:
+    build:
+      context: ../
+      dockerfile: Dockerfile.kafka
+    hostname: kafka-2
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+      - zookeeper-3
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-2:9092"
+      KAFKA_BROKER_ID: "2"
+      KAFKA_BROKER_RACK: wr
+      KAFKA_MIN_INSYNC_REPLICAS: 3
+      KAFKA_CONFLUENT_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count":2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_CONFLUENT_TRANSACTION_STATE_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count":2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+
+  kafka-3:
+    build:
+      context: ../
+      dockerfile: Dockerfile.kafka
+    hostname: kafka-3
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+      - zookeeper-3
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-3:9092"
+      KAFKA_BROKER_ID: "3"
+      KAFKA_BROKER_RACK: wo
+      KAFKA_MIN_INSYNC_REPLICAS: 3
+      KAFKA_CONFLUENT_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count":2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_CONFLUENT_TRANSACTION_STATE_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count":2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      
+  kafka-4:
+    build:
+      context: ../
+      dockerfile: Dockerfile.kafka
+    hostname: kafka-4
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+      - zookeeper-3
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-4:9092"
+      KAFKA_BROKER_ID: "4"
+      KAFKA_BROKER_RACK: er
+      KAFKA_MIN_INSYNC_REPLICAS: 3
+      KAFKA_CONFLUENT_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count":2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_CONFLUENT_TRANSACTION_STATE_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count":2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+
+  kafka-5:
+    build:
+      context: ../
+      dockerfile: Dockerfile.kafka
+    hostname: kafka-5
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+      - zookeeper-3
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-5:9092"
+      KAFKA_BROKER_ID: "5"
+      KAFKA_BROKER_RACK: er
+      KAFKA_MIN_INSYNC_REPLICAS: 3
+      KAFKA_CONFLUENT_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count":2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_CONFLUENT_TRANSACTION_STATE_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count":2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+
+  kafka-6:
+    build:
+      context: ../
+      dockerfile: Dockerfile.kafka
+    hostname: kafka-6
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+      - zookeeper-3
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-6:9092"
+      KAFKA_BROKER_ID: "6"
+      KAFKA_BROKER_RACK: eo 
+      KAFKA_MIN_INSYNC_REPLICAS: 3
+      KAFKA_CONFLUENT_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count":2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_CONFLUENT_TRANSACTION_STATE_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count":2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+

@@ -63,7 +63,8 @@ send_message() {
     msg=$@
 
     log "Sending messages to $container - $msg"
-    docker exec -t $name bash -c "echo $msg | kafka-console-producer --broker-list localhost:9092 --topic test --sync --request-required-acks -1 --request-timeout-ms 10000"
+    #docker exec -t $name bash -c "echo $msg | kafka-console-producer --broker-list localhost:9092 --topic test --sync --request-required-acks -1 --request-timeout-ms 10000"
+    docker exec -t $name bash -c "echo $msg | kafka-console-producer --broker-list $name:9092 --topic test --sync --request-required-acks all --property acks=all --sync --request-timeout-ms 60000"
     echo
 }
 
@@ -76,7 +77,7 @@ send_message_to_topic() {
     msg=$@
 
     log "Sending messages to $container - $msg"
-    docker-compose exec -t $name bash -c "echo $msg | kafka-console-producer --broker-list localhost:9092 --topic $topic --sync --request-required-acks 1 --request-timeout-ms 10000"
+    docker-compose exec $container bash -c "echo $msg | kafka-console-producer --bootstrap-server $container:9092 --topic $topic --sync --request-required-acks all --property acks-all --request-timeout-ms 60000"
     echo
 }
 
@@ -85,23 +86,42 @@ read_messages() {
     name=$(container_to_name $container)
     number_of_messages_to_read=${2:-1}
     log "Reading $number_of_messages_to_read messages from $container:"
-    docker exec -t $name timeout 15 kafka-console-consumer --bootstrap-server localhost:9092 --topic test --from-beginning --timeout-ms 10000 --max-messages $number_of_messages_to_read
+    docker exec -t $name timeout 15 kafka-console-consumer --bootstrap-server localhost:9092 --topic test --from-beginning --timeout-ms 100000 --max-messages $number_of_messages_to_read
 
     if [ ! $? -eq 0 ]; then
         log "Read unsuccessful"
     fi
 }
 
+read_messages_from_topic() {
+    container=$1
+    shift 1
+    topic=$1
+    shift 1
+    number_of_messages_to_read=$1
+    log "Reading $number_of_messages_to_read messages from $container:"
+    docker-compose exec  $container timeout 15 kafka-console-consumer --bootstrap-server localhost:9092 --topic $topic --from-beginning --timeout-ms 100000 --max-messages $number_of_messages_to_read
+
+    if [ ! $? -eq 0 ]; then
+        log "Read unsuccessful"
+    fi
+
+}
+
 get_state() {
     container=$1
+    shift 1
+    topic=$1
+
     name=$(container_to_name $container)
     log "State for partition from $container"
-    docker exec -t $name zookeeper-shell localhost:2181 get /brokers/topics/test/partitions/0/state | grep '{' | grep '}'
+    docker exec -t $name zookeeper-shell localhost:2181 get /brokers/topics/$topic/partitions/0/state | grep '{' | grep '}'
 }
 
 zookeeper_mode() {
     for container in $@; do
         name=$(container_to_name $container)
+	log `docker exec -t $name bash -c "echo stat" | nc localhost 2181`
         mode=$(docker exec -t $name bash -c "echo stat | nc localhost 2181 | grep Mode")
 
         if [ $? -eq 0 ]; then
@@ -126,4 +146,45 @@ create_topic() {
     log `docker exec -t $name kafka-topics --zookeeper localhost:2181 --create --topic $topic --replica-assignment $(seq $repl | xargs | tr ' ' ':') --config min.insync.replicas=$min`
 }
 
+create_topic_mrc() {
+    container=$1
+    name=$(container_to_name $container)
+    shift 1
+    topic=$1
+    shift 1
+    partitions=$1
+    shift 1
+    replicaplacement=$1
 
+    log "Create topic $topic of $partitions partitions and  placement config $replicaplacement"
+    log `docker-compose exec $container bash -c "echo '$replicaplacement' > replica-placement.json"`
+
+    log `docker-compose exec $container kafka-topics --bootstrap-server $container:9092 --create --topic $topic --partitions $partitions --replica-placement replica-placement.json`
+}
+
+describe_topic() {
+   container=$1
+   name=$(container_to_name $container)
+   shift 1
+   topic=$1
+   
+   log `docker exec -t $name kafka-topics --describe --topic $topic --bootstrap-server localhost:9092`
+
+}
+
+get_controller() {
+   container=$1
+
+   log `docker-compose exec $container zookeeper-shell $container:2181 get /controller`
+
+}
+
+
+print_hw() {
+  container=$1
+  shift 1
+  topic=$1
+
+  docker-compose exec $container kafka-run-class kafka.tools.GetOffsetShell --broker-list $container:9092 --time -1 --topic $topic
+
+}

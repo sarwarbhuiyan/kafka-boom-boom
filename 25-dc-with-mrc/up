@@ -1,0 +1,95 @@
+#!/bin/bash
+
+source ../utils/utils.sh
+
+docker-compose down -v
+docker-compose up -d
+
+
+KAFKA_1_IP=$(container_to_ip kafka-1)
+KAFKA_2_IP=$(container_to_ip kafka-2)
+KAFKA_3_IP=$(container_to_ip kafka-3)
+KAFKA_4_IP=$(container_to_ip kafka-4)
+KAFKA_5_IP=$(container_to_ip kafka-5)
+KAFKA_6_IP=$(container_to_ip kafka-6)
+
+ZOO_1_IP=$(container_to_ip zookeeper-1)
+ZOO_2_IP=$(container_to_ip zookeeper-2)
+ZOO_3_IP=$(container_to_ip zookeeper-3)
+interface=eth0
+
+
+main() {
+	sleep 60
+
+	create_topic_mrc kafka-1 __consumer_offsets 50 '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count":2, "constraints": {"rack": "er"}},{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}], "observers": [] }'
+	create_topic_mrc kafka-1 test 1 '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count":2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+        create_topic_mrc kafka-4 test2 1 '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "er"}},{"count":2, "constraints": {"rack": "wr"}}], "observers": [{"count": 1, "constraints":{ "rack":"eo"}},{"count": 1, "constraints":{ "rack":"wo"}}] }'
+
+	sleep 20
+
+	get_state zookeeper-1 test
+
+	send_message_to_topic kafka-1 test 'before network outage'
+	read_messages kafka-1 1
+
+	sleep 20
+	zookeeper_mode zookeeper-1 zookeeper-2 zookeeper-3
+
+	log 'Network outage starts'
+
+        # DC1 problems accessing DC1 and DC3
+       # block_host kafka-1 $KAFKA_4_IP $KAFKA_5_IP $KAFKA_6_IP $ZOO_3_IP $ZOO_1_IP
+       # block_host kafka-2 $KAFKA_4_IP $KAFKA_5_IP $KAFKA_6_IP $ZOO_3_IP $ZOO_1_IP
+       # block_host kafka-3 $KAFKA_4_IP $KAFKA_5_IP $KAFKA_6_IP $ZOO_3_IP $ZOO_1_IP
+       # block_host zookeeper-2 $ZOO_1_IP $ZOO_3_IP
+       
+       block_host kafka-1 $KAFKA_4_IP $KAFKA_5_IP $KAFKA_6_IP $ZOO_3_IP
+       block_host kafka-2 $KAFKA_4_IP $KAFKA_5_IP $KAFKA_6_IP $ZOO_3_IP
+       block_host kafka-3 $KAFKA_4_IP $KAFKA_5_IP $KAFKA_6_IP $ZOO_3_IP
+       block_host zookeeper-2 $ZOO_3_IP
+
+
+        # DC2 problems accessing DC1    
+        block_host kafka-4 $KAFKA_1_IP $KAFKA_2_IP $KAFKA_3_IP $ZOO_2_IP
+        block_host kafka-5 $KAFKA_1_IP $KAFKA_2_IP $KAFKA_3_IP $ZOO_2_IP
+        block_host kafka-6 $KAFKA_1_IP $KAFKA_2_IP $KAFKA_3_IP $ZOO_2_IP
+        block_host zookeeper-3 $ZOO_2_IP
+
+	 # DC3 problems accessing DC1 (this is crucial. If this is still up, you won't be able to change anything (Leaders, ISRs, etc)
+         #block_host zookeeper-1 $ZOO_2_IP 
+
+	log "Let's wait for the timeouts to occur"
+	sleep 45
+
+	get_state zookeeper-1 test
+	get_state zookeeper-2 test
+	get_state zookeeper-3 test
+        
+	describe_topic kafka-1 test
+	describe_topic kafka-4 test
+	zookeeper_mode zookeeper-1 zookeeper-2 zookeeper-3
+
+	log "Time is now "+`date`+"\n"
+	send_message_to_topic kafka-1 test "sending message during outage from kafka-1"
+
+	log "Time is now "+`date`+"\n"
+
+	send_message_to_topic kafka-4 test "sending message during outage from kafka-4"
+
+
+	log 'Network outage ends'
+	#remove_partition kafka-1 kafka-2 kafka-3 kafka-4 kafka-5 kafka-6 zookeeper-1 zookeeper-2 zookeeper-3
+
+	log 'Waiting for the system to recover'
+	#sleep 45
+
+	get_state zookeeper-1 test
+	get_state zookeeper-2 test
+	get_state zookeeper-3 test
+
+	#send_message kafka-1 'after network outage'
+	#read_messages kafka-1 2
+}
+
+main
