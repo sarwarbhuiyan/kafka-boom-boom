@@ -5,6 +5,10 @@ services:
       context: ../
       dockerfile: Dockerfile.zookeeper
     hostname: zookeeper-1
+    networks:
+      - n1
+    cap_add:
+      - NET_ADMIN
     environment:
       ZOOKEEPER_SERVER_ID: "1"
       ZOOKEEPER_CLIENT_PORT: 2181
@@ -16,6 +20,10 @@ services:
       context: ../
       dockerfile: Dockerfile.zookeeper
     hostname: zookeeper-2
+    networks:
+      - n1    
+    cap_add:
+      - NET_ADMIN
     environment:
       ZOOKEEPER_SERVER_ID: "2"
       ZOOKEEPER_CLIENT_PORT: 2181
@@ -27,6 +35,10 @@ services:
       context: ../
       dockerfile: Dockerfile.zookeeper
     hostname: zookeeper-3
+    networks:
+      - n1
+    cap_add:
+      - NET_ADMIN
     environment:
       ZOOKEEPER_SERVER_ID: "3"
       ZOOKEEPER_CLIENT_PORT: 2181
@@ -38,106 +50,162 @@ services:
       context: ../
       dockerfile: Dockerfile.kafka
     hostname: kafka-1
+    networks:
+      - n1
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 29091:29091
     depends_on:
       - zookeeper-1
       - zookeeper-2
       - zookeeper-3
     environment:
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181"
-      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-1:9092"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-1:9092,EXTERNAL://localhost:29091"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT"
       KAFKA_BROKER_ID: "1"
       KAFKA_BROKER_RACK: wr
-      KAFKA_MIN_INSYNC_REPLICAS: 2
-      KAFKA_CONFLUENT_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 1, "constraints": {"rack": "wr"}},{"count":1, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
-      KAFKA_CONFLUENT_TRANSACTION_STATE_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 1, "constraints": {"rack": "wr"}},{"count":1, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_OFFSETS_REPLICATION_FACTOR: ""
+      KAFKA_CONFLUENT_OFFSETS_TOPIC_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count":2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_MIN_INSYNC_REPLICAS: 3
+      KAFKA_CONFLUENT_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count": 2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_CONFLUENT_TRANSACTION_STATE_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count": 2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
 
   kafka-2:
     build:
       context: ../
       dockerfile: Dockerfile.kafka
     hostname: kafka-2
+    networks:
+      - n1
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 29092:29092
     depends_on:
       - zookeeper-1
       - zookeeper-2
       - zookeeper-3
     environment:
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181"
-      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-2:9092"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-2:9092,EXTERNAL://localhost:29092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT"
       KAFKA_BROKER_ID: "2"
-      KAFKA_BROKER_RACK: wo
-      KAFKA_MIN_INSYNC_REPLICAS: 2
-      KAFKA_CONFLUENT_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 1, "constraints": {"rack": "wr"}},{"count":1, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
-      KAFKA_CONFLUENT_TRANSACTION_STATE_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 1, "constraints": {"rack": "wr"}},{"count":1, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_BROKER_RACK: wr
+      KAFKA_MIN_INSYNC_REPLICAS: 3
+      KAFKA_OFFSETS_REPLICATION_FACTOR: ""
+      KAFKA_CONFLUENT_OFFSETS_TOPIC_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count": 2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_CONFLUENT_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count": 2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_CONFLUENT_TRANSACTION_STATE_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count": 2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
 
-#  kafka-3:
-#    build:
-#      context: ../
-#      dockerfile: Dockerfile.kafka
-#    hostname: kafka-3
-#    depends_on:
-#      - zookeeper-1
-#      - zookeeper-2
-#      - zookeeper-3
-#    environment:
-#      KAFKA_ZOOKEEPER_CONNECT: "zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181"
-#      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-3:9092"
-#      KAFKA_BROKER_ID: "3"
-#      KAFKA_BROKER_RACK: wo
-#      KAFKA_MIN_INSYNC_REPLICAS: 2
-#      KAFKA_CONFLUENT_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count":2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
-#      KAFKA_CONFLUENT_TRANSACTION_STATE_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count":2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
-#      
+  kafka-3:
+    build:
+      context: ../
+      dockerfile: Dockerfile.kafka
+    hostname: kafka-3
+    networks:
+     - n1
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 29093:29093
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+      - zookeeper-3
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-3:9092,EXTERNAL://localhost:29093"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT"
+      KAFKA_BROKER_ID: "3"
+      KAFKA_BROKER_RACK: wo
+      KAFKA_MIN_INSYNC_REPLICAS: 3
+      KAFKA_CONFLUENT_OFFSETS_TOPIC_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count": 2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_CONFLUENT_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count": 2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_CONFLUENT_TRANSACTION_STATE_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count": 2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      
   kafka-4:
     build:
       context: ../
       dockerfile: Dockerfile.kafka
     hostname: kafka-4
+    networks:
+      - n1
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 29094:29094
     depends_on:
       - zookeeper-1
       - zookeeper-2
       - zookeeper-3
     environment:
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181"
-      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-4:9092"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-4:9092,EXTERNAL://localhost:29094"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT"
       KAFKA_BROKER_ID: "4"
       KAFKA_BROKER_RACK: er
-      KAFKA_MIN_INSYNC_REPLICAS: 2
-      KAFKA_CONFLUENT_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 1, "constraints": {"rack": "wr"}},{"count":1, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
-      KAFKA_CONFLUENT_TRANSACTION_STATE_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 1, "constraints": {"rack": "wr"}},{"count":1, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_MIN_INSYNC_REPLICAS: 3
+      KAFKA_OFFSETS_REPLICATION_FACTOR: ""
+      KAFKA_CONFLUENT_OFFSETS_TOPIC_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count": 2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_CONFLUENT_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count": 2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_CONFLUENT_TRANSACTION_STATE_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count": 2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
 
   kafka-5:
     build:
       context: ../
       dockerfile: Dockerfile.kafka
     hostname: kafka-5
+    networks:
+      - n1
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 29095:29095
     depends_on:
       - zookeeper-1
       - zookeeper-2
       - zookeeper-3
     environment:
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181"
-      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-5:9092"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-5:9092,EXTERNAL://localhost:29095"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT"
       KAFKA_BROKER_ID: "5"
-      KAFKA_BROKER_RACK: eo
-      KAFKA_MIN_INSYNC_REPLICAS: 2
-      KAFKA_CONFLUENT_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 1, "constraints": {"rack": "wr"}},{"count":1, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
-      KAFKA_CONFLUENT_TRANSACTION_STATE_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 1, "constraints": {"rack": "wr"}},{"count":1, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_BROKER_RACK: er
+      KAFKA_MIN_INSYNC_REPLICAS: 3
+      KAFKA_OFFSETS_REPLICATION_FACTOR: ""
+      KAFKA_CONFLUENT_OFFSETS_TOPIC_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count": 2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_CONFLUENT_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count": 2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_CONFLUENT_TRANSACTION_STATE_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count": 2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
 
-#  kafka-6:
-#    build:
-#      context: ../
-#      dockerfile: Dockerfile.kafka
-#    hostname: kafka-6
-#    depends_on:
-#      - zookeeper-1
-#      - zookeeper-2
-#      - zookeeper-3
-#    environment:
-#      KAFKA_ZOOKEEPER_CONNECT: "zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181"
-#      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-6:9092"
-#      KAFKA_BROKER_ID: "6"
-#      KAFKA_BROKER_RACK: eo 
-#      KAFKA_MIN_INSYNC_REPLICAS: 2
-#      KAFKA_CONFLUENT_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count":2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
-#      KAFKA_CONFLUENT_TRANSACTION_STATE_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count":2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
-#
+  kafka-6:
+    build:
+      context: ../
+      dockerfile: Dockerfile.kafka
+    hostname: kafka-6
+    networks:
+      - n1
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 29096:29096
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+      - zookeeper-3
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper-1:2181,zookeeper-2:2181,zookeeper-3:2181"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-6:9092,EXTERNAL://localhost:29096"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT"
+      KAFKA_BROKER_ID: "6"
+      KAFKA_BROKER_RACK: eo 
+      KAFKA_MIN_INSYNC_REPLICAS: 3
+      KAFKA_CONFLUENT_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count":2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_CONFLUENT_OFFSETS_TOPIC_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count": 2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+      KAFKA_CONFLUENT_TRANSACTION_STATE_LOG_PLACEMENT_CONSTRAINTS: '{"version": 2,"replicas": [{"count": 2, "constraints": {"rack": "wr"}},{"count": 2, "constraints": {"rack": "er"}}], "observers": [{"count": 1, "constraints":{ "rack":"wo"}},{"count": 1, "constraints":{ "rack":"eo"}}] }'
+
+
+
+networks:
+  n1:
